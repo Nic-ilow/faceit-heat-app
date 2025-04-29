@@ -1,0 +1,25 @@
+replicaCount: 1
+
+image:
+  repository: your-docker-registry/faceit
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+faceitApiKey: ""
+djangoSecretKey: ""
+
+debug: "false"
+allowedHosts:
+  - "localhost"
+
+service:
+  type: ClusterIP
+  port: 8000
+
+ingress:
+  enabled: false
+  hosts:
+    - host: faceit.example.com
+      paths:
+        - "/"
+  tls: []
