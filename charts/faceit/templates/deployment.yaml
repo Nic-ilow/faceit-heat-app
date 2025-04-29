@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "faceit.fullname" . }}
+  labels:
+    {{- include "faceit.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "faceit.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "faceit.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: faceit
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["gunicorn", "faceit.wsgi:application", "--bind", "0.0.0.0:{{ .Values.service.port }}"]
+          envFrom:
+            - configMapRef:
+                name: faceit-config
+          env:
+            - name: FACEIT_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: faceit-credentials
+                  key: faceit_api_key
+            - name: DJANGO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: faceit-credentials
+                  key: django_secret_key
+          ports:
+            - containerPort: {{ .Values.service.port }}
