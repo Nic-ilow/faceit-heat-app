@@ -1,6 +1,5 @@
 # Faceit Django Webserver
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/you/faceit/actions) [![Coverage](https://img.shields.io/badge/coverage-100%25-blue)](https://github.com/you/faceit)
 
 Minimal, production-ready Django app for interacting with the Faceit API, containerized and deployable via Helm.
 
