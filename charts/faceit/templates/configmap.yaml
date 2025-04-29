@@ -4,4 +4,4 @@ metadata:
   name: faceit-config
 data:
   DEBUG: "{{ .Values.debug }}"
-  ALLOWED_HOSTS: {{ .Values.allowedHosts | toJson }}
+  ALLOWED_HOSTS: "{{ join "," .Values.allowedHosts }}"
