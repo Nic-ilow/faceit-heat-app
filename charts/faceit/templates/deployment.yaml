@@ -18,7 +18,6 @@ spec:
         - name: faceit
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: ["gunicorn", "faceit.wsgi:application", "--bind", "0.0.0.0:{{ .Values.service.port }}"]
           envFrom:
             - configMapRef:
                 name: faceit-config
@@ -33,5 +32,30 @@ spec:
                 secretKeyRef:
                   name: faceit-credentials
                   key: django_secret_key
+            - name: DATABASE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: faceit-credentials
+                  key: db_host
+            - name: DATABASE_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: faceit-credentials
+                  key: db_port
+            - name: DATABASE_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: faceit-credentials
+                  key: db_name
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: faceit-credentials
+                  key: db_user
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: faceit-credentials
+                  key: db_password
           ports:
             - containerPort: {{ .Values.service.port }}

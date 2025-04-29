@@ -14,7 +14,16 @@ allowedHosts:
 
 service:
   type: ClusterIP
-  port: 8000
+  port: 8001
+  targetPort: 8001
+
+database:
+  host: ""
+  port: 5432
+  name: ""
+  user: ""
+  password: ""
+
 
 ingress:
   enabled: false
