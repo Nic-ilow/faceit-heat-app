@@ -1,0 +1,354 @@
+{% extends 'faceit/base.html' %}
+{% load custom_filters %}
+
+{% block title %}Match Analysis Results{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Heat level color scale - Updated to match the legend */
+    .heat-level-ice { background-color: #17a2b8 !important; color: white !important; } /* Light blue for better contrast */
+    .heat-level-cold { background-color: #007bff !important; } /* Bootstrap primary */
+    .heat-level-neutral { background-color: #6c757d !important; } /* Bootstrap secondary */
+    .heat-level-warm { background-color: #ffe600 !important; color: #333 !important; } /* Yellowish with dark text */
+    .heat-level-hot { background-color: #ff7f07 !important; color: #212529 !important; } /* Bootstrap warning */
+    .heat-level-fire { background-color: #dc3545 !important; } /* Bootstrap danger */
+    
+    /* For the different heat score ranges - fixed color assignments */
+    .kr-value-low { color: #FF0000; }
+    .kr-value-avg { color: #000000; }
+    .kr-value-good { color: #008800; }
+    .kr-value-great { color: #0000FF; }
+    
+    .kd-value-low { color: #FF0000; }
+    .kd-value-avg { color: #000000; }
+    .kd-value-good { color: #008800; }
+    .kd-value-great { color: #0000FF; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header card-header-faceit">
+                <h2 class="my-2"><i class="fas fa-chart-line"></i> Match Analysis Results</h2>
+                <p class="mb-0 text-white-50">Match ID: {{ match_data.match_id }}</p>
+            </div>
+            <div class="card-body">
+                <p class="lead">Below are the performance metrics for all players in this match. Higher heat scores indicate better recent performance.</p>
+                
+                <div class="d-flex justify-content-end mb-3">
+                    <a href="{% url 'faceit:home' %}" class="btn btn-faceit">
+                        <i class="fas fa-search"></i> Analyze Another Match
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Team 1 -->
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header card-header-faceit d-flex justify-content-between">
+                <h3 class="my-2"><i class="fas fa-users"></i> {{ match_data.team1.name }}</h3>
+                <span class="badge bg-primary">Team 1</span>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for player in match_data.team1.players %}
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100 player-card team-faction1">
+                            <div class="card-header bg-light">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h4 class="mb-0">{{ player.nickname }}</h4>
+                                    {% if player.performance_score > 8.5 %}
+                                        <span class="badge bg-danger"><i class="fas fa-fire"></i> ON FIRE</span>
+                                    {% elif player.performance_score > 7 %}
+                                        <span class="badge" style="background-color: #ff7f07; color: #212529;"><i class="fas fa-fire"></i> Hot</span>
+                                    {% elif player.performance_score > 6 %}
+                                        <span class="badge" style="background-color: #ffe600; color: #333;"><i class="fas fa-temperature-half"></i> Warm</span>
+                                    {% elif player.performance_score > 4 %}
+                                        <span class="badge bg-secondary"><i class="fas fa-thermometer-half"></i> Neutral</span>
+                                    {% elif player.performance_score > 2.5 %}
+                                        <span class="badge bg-primary"><i class="fas fa-temperature-low"></i> Cold</span>
+                                    {% else %}
+                                        <span class="badge" style="background-color: #17a2b8; color: white;"><i class="fas fa-snowflake"></i> ICE</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-6 text-center">
+                                        <div class="stats-value 
+                                            {% if player.kd_ratio > 1.5 %}kd-value-great
+                                            {% elif player.kd_ratio > 1.0 %}kd-value-good
+                                            {% elif player.kd_ratio > 0.8 %}kd-value-avg
+                                            {% else %}kd-value-low{% endif %}">
+                                            {{ player.kd_ratio|floatformat:2 }}
+                                        </div>
+                                        <small class="text-muted">K/D Ratio</small>
+                                    </div>
+                                    <div class="col-6 text-center">
+                                        <div class="stats-value 
+                                            {% if player.kr_ratio > 1.0 %}kr-value-great
+                                            {% elif player.kr_ratio > 0.8 %}kr-value-good
+                                            {% elif player.kr_ratio > 0.6 %}kr-value-avg
+                                            {% else %}kr-value-low{% endif %}">
+                                            {{ player.kr_ratio|floatformat:2 }}
+                                        </div>
+                                        <small class="text-muted">K/R Ratio</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label mb-1">Heat Level</label>
+                                    <div class="progress" style="height: 25px;">
+                                        <div class="progress-bar {% if player.performance_score > 8.5 %}heat-level-fire{% elif player.performance_score > 7 %}heat-level-hot{% elif player.performance_score > 6 %}heat-level-warm{% elif player.performance_score > 4 %}heat-level-neutral{% elif player.performance_score > 2.5 %}heat-level-cold{% else %}heat-level-ice{% endif %}" role="progressbar" style="width: {{ player.performance_score|min_value:10|floatformat:0|multiply:10 }}%;" aria-valuenow="{{ player.performance_score|min_value:10|floatformat:0 }}" aria-valuemin="0" aria-valuemax="10">
+                                            {{ player.performance_score|min_value:10|floatformat:1 }}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between">
+                                    <span>
+                                        <i class="fas fa-gamepad"></i> {{ player.match_count }} matches
+                                    </span>
+                                    <span>
+                                        <i class="fas fa-trophy"></i> {{ player.wins_count }} wins
+                                    </span>
+                                    <span>
+                                        {% if player.match_count > 0 %}
+                                            {% widthratio player.wins_count player.match_count 100 %}% win rate
+                                        {% else %}
+                                            0% win rate
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                
+                                {% if request.user.is_staff %}
+                                <div class="mt-3 pt-2 border-top small text-muted">
+                                    <div><strong>Debug Info:</strong></div>
+                                    <div>KD: {{ player.kd_ratio|floatformat:2 }} (deviation: {{ player.kd_ratio|add:-1.0|floatformat:2 }})</div>
+                                    <div>KR: {{ player.kr_ratio|floatformat:2 }} (deviation: {{ player.kr_ratio|add:-0.72|floatformat:2 }})</div>
+                                    <div>KD Impact: {{ player.kd_ratio|add:-1.0|multiply:2.5|floatformat:2 }}</div>
+                                    <div>KR Impact: {{ player.kr_ratio|add:-0.72|multiply:4.0|floatformat:2 }}</div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Team 2 -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header card-header-faceit d-flex justify-content-between">
+                <h3 class="my-2"><i class="fas fa-users"></i> {{ match_data.team2.name }}</h3>
+                <span class="badge bg-danger">Team 2</span>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for player in match_data.team2.players %}
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100 player-card team-faction2">
+                            <div class="card-header bg-light">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h4 class="mb-0">{{ player.nickname }}</h4>
+                                    {% if player.performance_score > 8.5 %}
+                                        <span class="badge bg-danger"><i class="fas fa-fire"></i> ON FIRE</span>
+                                    {% elif player.performance_score > 7 %}
+                                        <span class="badge" style="background-color: #ff7f07; color: #212529;"><i class="fas fa-fire"></i> Hot</span>
+                                    {% elif player.performance_score > 6 %}
+                                        <span class="badge" style="background-color: #ffe600; color: #333;"><i class="fas fa-temperature-half"></i> Warm</span>
+                                    {% elif player.performance_score > 4 %}
+                                        <span class="badge bg-secondary"><i class="fas fa-thermometer-half"></i> Neutral</span>
+                                    {% elif player.performance_score > 2.5 %}
+                                        <span class="badge bg-primary"><i class="fas fa-temperature-low"></i> Cold</span>
+                                    {% else %}
+                                        <span class="badge" style="background-color: #17a2b8; color: white;"><i class="fas fa-snowflake"></i> ICE</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-6 text-center">
+                                        <div class="stats-value 
+                                            {% if player.kd_ratio > 1.5 %}kd-value-great
+                                            {% elif player.kd_ratio > 1.0 %}kd-value-good
+                                            {% elif player.kd_ratio > 0.8 %}kd-value-avg
+                                            {% else %}kd-value-low{% endif %}">
+                                            {{ player.kd_ratio|floatformat:2 }}
+                                        </div>
+                                        <small class="text-muted">K/D Ratio</small>
+                                    </div>
+                                    <div class="col-6 text-center">
+                                        <div class="stats-value 
+                                            {% if player.kr_ratio > 1.0 %}kr-value-great
+                                            {% elif player.kr_ratio > 0.8 %}kr-value-good
+                                            {% elif player.kr_ratio > 0.6 %}kr-value-avg
+                                            {% else %}kr-value-low{% endif %}">
+                                            {{ player.kr_ratio|floatformat:2 }}
+                                        </div>
+                                        <small class="text-muted">K/R Ratio</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label mb-1">Heat Level</label>
+                                    <div class="progress" style="height: 25px;">
+                                        <div class="progress-bar {% if player.performance_score > 8.5 %}heat-level-fire{% elif player.performance_score > 7 %}heat-level-hot{% elif player.performance_score > 6 %}heat-level-warm{% elif player.performance_score > 4 %}heat-level-neutral{% elif player.performance_score > 2.5 %}heat-level-cold{% else %}heat-level-ice{% endif %}" role="progressbar" style="width: {{ player.performance_score|min_value:10|floatformat:0|multiply:10 }}%;" aria-valuenow="{{ player.performance_score|min_value:10|floatformat:0 }}" aria-valuemin="0" aria-valuemax="10">
+                                            {{ player.performance_score|min_value:10|floatformat:1 }}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between">
+                                    <span>
+                                        <i class="fas fa-gamepad"></i> {{ player.match_count }} matches
+                                    </span>
+                                    <span>
+                                        <i class="fas fa-trophy"></i> {{ player.wins_count }} wins
+                                    </span>
+                                    <span>
+                                        {% if player.match_count > 0 %}
+                                            {% widthratio player.wins_count player.match_count 100 %}% win rate
+                                        {% else %}
+                                            0% win rate
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                
+                                {% if request.user.is_staff %}
+                                <div class="mt-3 pt-2 border-top small text-muted">
+                                    <div><strong>Debug Info:</strong></div>
+                                    <div>KD: {{ player.kd_ratio|floatformat:2 }} (deviation: {{ player.kd_ratio|add:-1.0|floatformat:2 }})</div>
+                                    <div>KR: {{ player.kr_ratio|floatformat:2 }} (deviation: {{ player.kr_ratio|add:-0.72|floatformat:2 }})</div>
+                                    <div>KD Impact: {{ player.kd_ratio|add:-1.0|multiply:2.5|floatformat:2 }}</div>
+                                    <div>KR Impact: {{ player.kr_ratio|add:-0.72|multiply:4.0|floatformat:2 }}</div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12 text-center">
+        <a href="{% url 'faceit:home' %}" class="btn btn-faceit btn-lg">
+            <i class="fas fa-search"></i> Analyze Another Match
+        </a>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header card-header-faceit">
+                <h3 class="my-2"><i class="fas fa-info-circle"></i> Performance Guide</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <h5>K/D Ratio</h5>
+                        <ul class="list-group">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>Above 1.5</span>
+                                <span class="badge bg-success">Exceptional</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>1.0 - 1.5</span>
+                                <span class="badge bg-primary">Good</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>0.8 - 1.0</span>
+                                <span class="badge bg-warning">Average</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>Below 0.8</span>
+                                <span class="badge bg-danger">Below average</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-4">
+                        <h5>K/R Ratio</h5>
+                        <ul class="list-group">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>Above 1.0</span>
+                                <span class="badge bg-success">Insane</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>0.8 - 1.0</span>
+                                <span class="badge bg-primary">Great</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>0.6 - 0.8</span>
+                                <span class="badge bg-warning">Average</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>Below 0.6</span>
+                                <span class="badge bg-danger">Cold</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-4">
+                        <h5>Heat Score</h5>
+                        <ul class="list-group">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>8.5 - 10</span>
+                                <span class="badge bg-danger">ON FIRE 🔥</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>7 - 8.5</span>
+                                <span class="badge" style="background-color: #ff7f07; color: #212529;">Hot</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>6 - 7</span>
+                                <span class="badge" style="background-color: #ffe600; color: #333;">Warm</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>4 - 6</span>
+                                <span class="badge bg-secondary">Neutral</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>2.5 - 4</span>
+                                <span class="badge bg-primary">Cold</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>1 - 2.5</span>
+                                <span class="badge" style="background-color: #17a2b8; color: white;">ICE ❄️</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Add any additional JavaScript here
+    document.addEventListener('DOMContentLoaded', function() {
+        // Highlight players with exceptional performance
+        const highPerformers = document.querySelectorAll('.progress-bar[aria-valuenow="15"]');
+        highPerformers.forEach(el => {
+            el.classList.add('progress-bar-striped', 'progress-bar-animated');
+        });
+    });
+</script>
+{% endblock %}
+
+{% endblock %} 

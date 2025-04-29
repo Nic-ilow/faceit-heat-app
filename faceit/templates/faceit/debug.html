@@ -1,0 +1,38 @@
+{% extends 'faceit/base.html' %}
+
+{% block title %}Debug - Faceit Analyzer{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header card-header-faceit">
+                <h2 class="my-2"><i class="fas fa-bug"></i> Debug Information</h2>
+            </div>
+            <div class="card-body">
+                <h4>API Response Data</h4>
+                <div class="alert alert-info">
+                    <p>Below is the raw data returned by the API to help diagnose issues.</p>
+                </div>
+                
+                {% if debug_info %}
+                <div class="card bg-light mb-4">
+                    <div class="card-header">
+                        <h5>Match ID: {{ debug_info.match_id }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <pre class="bg-dark text-white p-3" style="overflow: auto; max-height: 500px;"><code>{{ debug_info.data }}</code></pre>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="mt-4">
+                    <a href="{% url 'faceit:home' %}" class="btn btn-faceit">
+                        <i class="fas fa-home"></i> Return Home
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,61 @@
+{% extends 'faceit/base.html' %}
+
+{% block title %}Find Player Matches - Faceit Analyzer{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header card-header-faceit">
+                <h2 class="my-2"><i class="fas fa-search"></i> Find Player Matches</h2>
+            </div>
+            <div class="card-body">
+                <p class="lead">Enter a Faceit player nickname to find their recent matches.</p>
+                
+                <form method="post" action="{% url 'faceit:find_player' %}" class="mt-4">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label for="player_nickname" class="form-label">Player Nickname</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark text-white">
+                                <i class="fas fa-user"></i>
+                            </span>
+                            <input type="text" class="form-control" id="player_nickname" name="player_nickname" 
+                                placeholder="Enter Faceit player nickname" required>
+                        </div>
+                        <div class="form-text">Enter the exact Faceit nickname of the player</div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-faceit btn-lg">
+                        <i class="fas fa-search"></i> Find Matches
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header card-header-faceit">
+                <h3><i class="fas fa-info-circle"></i> How to Find Match IDs</h3>
+            </div>
+            <div class="card-body">
+                <ol>
+                    <li>Enter the exact Faceit nickname of a player</li>
+                    <li>View their recent matches and copy a match ID</li>
+                    <li>Use that match ID in the analyzer to get heat check information for all players</li>
+                </ol>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-lightbulb"></i> Tip: Recently finished matches work best for analysis.
+                </div>
+                
+                <div class="text-center mt-4">
+                    <a href="{% url 'faceit:home' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Analyzer
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

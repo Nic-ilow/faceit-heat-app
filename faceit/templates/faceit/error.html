@@ -1,0 +1,56 @@
+{% extends 'faceit/base.html' %}
+
+{% block title %}Error - Faceit Analyzer{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header card-header-faceit">
+                <h2 class="my-2"><i class="fas fa-exclamation-triangle"></i> Error</h2>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-danger mb-4">
+                    <p class="mb-0">{{ error }}</p>
+                </div>
+                
+                <h4><i class="fas fa-question-circle"></i> Possible causes:</h4>
+                <ul class="list-group mb-4">
+                    <li class="list-group-item">
+                        <i class="fas fa-times-circle text-danger"></i> Invalid match ID
+                    </li>
+                    <li class="list-group-item">
+                        <i class="fas fa-key text-danger"></i> API key not configured or invalid
+                    </li>
+                    <li class="list-group-item">
+                        <i class="fas fa-wifi text-danger"></i> Network connectivity issues
+                    </li>
+                    <li class="list-group-item">
+                        <i class="fas fa-server text-danger"></i> Faceit API service may be down
+                    </li>
+                </ul>
+                
+                <div class="card bg-light mb-4">
+                    <div class="card-body">
+                        <h5><i class="fas fa-cogs"></i> API configuration:</h5>
+                        <p>Make sure you have configured the Faceit API credentials in <code>faceit/scripts/creds.py</code>.</p>
+                        <p>You can get your API key from the <a href="https://developers.faceit.com/" target="_blank">Faceit Developer Portal</a>.</p>
+                    </div>
+                </div>
+                
+                <div class="text-center">
+                    <a href="{% url 'faceit:home' %}" class="btn btn-faceit btn-lg">
+                        <i class="fas fa-home"></i> Go Back
+                    </a>
+                    
+                    {% if match_id %}
+                    <a href="{% url 'faceit:debug_match' match_id=match_id %}" class="btn btn-secondary btn-lg ms-2">
+                        <i class="fas fa-bug"></i> Debug Match
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

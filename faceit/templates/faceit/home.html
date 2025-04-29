@@ -1,0 +1,174 @@
+{% extends 'faceit/base.html' %}
+
+{% block title %}Faceit Analyzer{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header card-header-faceit">
+                <h2 class="my-2"><i class="fas fa-fire"></i> Faceit Performance Analyzer</h2>
+            </div>
+            <div class="card-body">
+                <p class="lead">Enter a Faceit Match ID or paste the full match room URL to analyze the performance of all players in the lobby.</p>
+                
+                <form method="post" action="{% url 'faceit:analyze' %}" class="mt-4" id="analyze-form">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label for="{{ form.game_id.id_for_label }}" class="form-label">Match ID or Match Room URL</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark text-white">
+                                <i class="fas fa-gamepad"></i>
+                            </span>
+                            {{ form.game_id }}
+                        </div>
+                        <div class="form-text">Enter the Faceit Match ID or copy-paste the match room URL (e.g., https://www.faceit.com/en/cs2/room/1-ccd8d1c6-11ed-4279-9425-4d205897ed56)</div>
+                    </div>
+                    
+                    {% if debug or request.user.username == 'nick' %}
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="force_reanalysis" name="force_reanalysis" value="true">
+                        <label class="form-check-label" for="force_reanalysis">Force reanalysis (ignore cached data)</label>
+                    </div>
+                    {% endif %}
+                    
+                    <button type="submit" class="btn btn-faceit btn-lg" id="analyze-btn">
+                        <i class="fas fa-search"></i> Analyze Match
+                    </button>
+                    
+                    <a href="{% url 'faceit:find_player' %}" class="btn btn-secondary btn-lg ms-2">
+                        <i class="fas fa-user-friends"></i> Find Your Matches
+                    </a>
+                    
+                    {% if debug or request.user.username == 'nick' %}
+                    <a href="{% url 'faceit:clear_cache' %}" class="btn btn-outline-danger ms-2">
+                        <i class="fas fa-trash"></i> Manage Cache
+                    </a>
+                    {% endif %}
+                    
+                    <div class="alert alert-info mt-3" id="loading-indicator" style="display: none;">
+                        <div class="d-flex align-items-center">
+                            <div class="spinner-border text-primary me-3" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <div>
+                                <strong>Analyzing match data...</strong>
+                                <div id="loading-text">Gathering player statistics...</div>
+                                <small class="text-muted">This process typically takes about 30 seconds to complete as we gather player data from multiple matches.</small>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header card-header-faceit">
+                <h3><i class="fas fa-info-circle"></i> About This Tool</h3>
+            </div>
+            <div class="card-body">
+                <p>This performance analyzer uses match data from the Faceit API to calculate performance metrics for all players in a match:</p>
+                <div class="row">
+                    <div class="col-md-6">
+                        <ul class="list-group">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                K/D Ratio
+                                <span class="badge bg-dark rounded-pill">Kill/Death</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                K/R Ratio
+                                <span class="badge bg-dark rounded-pill">Kill/Round</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Match Count
+                                <span class="badge bg-dark rounded-pill">Recent Matches</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul class="list-group">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Win Count
+                                <span class="badge bg-dark rounded-pill">Recent Wins</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Heat Score
+                                <span class="badge bg-dark rounded-pill">Performance Rating</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <h4><i class="fas fa-question-circle"></i> How to use</h4>
+                    <ol>
+                        <li>Copy the full URL from any Faceit match room page</li>
+                        <li>Paste the URL in the input field above (or just the match ID if you have it)</li>
+                        <li>Click "Analyze Match" to see the performance data for all players</li>
+                    </ol>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Need to find your matches? Use the "Find Your Matches" button to search for players and view their recent match history.
+                    </div>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i> <strong>How Our Analysis Works:</strong> The heat score compares a player's "expected" performance (based on their ELO and skill level) with their "actual" performance in recent matches. This helps identify players who are performing above or below expectations when matched against opponents of varying skill levels.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const analyzeForm = document.getElementById('analyze-form');
+        const analyzeBtn = document.getElementById('analyze-btn');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const loadingText = document.getElementById('loading-text');
+        
+        let loadingStep = 0;
+        let loadingInterval;
+        
+        const initialMessages = [
+            "Gathering player statistics...",
+            "Analyzing match data...",
+            "Calculating performance metrics...",
+            "Processing heat levels...",
+            "Almost there..."
+        ];
+        
+        const finalMessages = [
+            "Almost there...",
+            "Just one more second...",
+            "Maybe there's a queue or something..."
+        ];
+        
+        function updateLoadingText() {
+            if (loadingStep < initialMessages.length - 1) {
+                // Still in the initial sequence
+                loadingStep++;
+                loadingText.textContent = initialMessages[loadingStep];
+            } else {
+                // Switch to cycling through final messages
+                const currentIndex = (loadingStep - initialMessages.length + 1) % finalMessages.length;
+                loadingText.textContent = finalMessages[currentIndex];
+                loadingStep++;
+            }
+        }
+        
+        analyzeForm.addEventListener('submit', function() {
+            // Show loading indicator
+            loadingIndicator.style.display = 'block';
+            analyzeBtn.disabled = true;
+            
+            // Start cycling through loading messages every 5 seconds
+            loadingInterval = setInterval(updateLoadingText, 5000);
+            
+            // Allow form submission
+            return true;
+        });
+    });
+</script>
+{% endblock %} 

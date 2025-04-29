@@ -1,0 +1,73 @@
+{% extends 'faceit/base.html' %}
+
+{% block title %}Clear Analysis Cache{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header card-header-faceit">
+                <h2 class="my-2"><i class="fas fa-trash"></i> Clear Analysis Cache</h2>
+            </div>
+            <div class="card-body">
+                <p class="lead">Clear the cached analysis for a specific match or all matches.</p>
+                
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i> Clearing the cache will force a complete reanalysis the next time the match is requested.
+                </div>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> <strong>Developer Feature:</strong> This feature is only available in debug mode or to the lead developer. It will not be accessible in production for regular users.
+                </div>
+                
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0">Clear Specific Match</h5>
+                            </div>
+                            <div class="card-body">
+                                <form method="post">
+                                    {% csrf_token %}
+                                    <div class="mb-3">
+                                        <label for="match_id" class="form-label">Match ID or URL</label>
+                                        <input type="text" class="form-control" id="match_id" name="match_id" required>
+                                        <div class="form-text">
+                                            You can enter either:
+                                            <ul class="mb-0">
+                                                <li>Match ID (1-fc193b6d-...)</li>
+                                                <li>Match Room URL (https://www.faceit.com/en/cs2/room/1-fc193b6d-...)</li>
+                                                <li>Scoreboard URL (https://www.faceit.com/en/cs2/room/1-fc193b6d-.../scoreboard)</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-trash"></i> Clear Match Cache
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-danger text-white">
+                                <h5 class="mb-0">Clear All Matches</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>This will clear all cached match analyses from the database.</p>
+                                <form method="post">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-danger">
+                                        <i class="fas fa-trash"></i> Clear All Cache
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

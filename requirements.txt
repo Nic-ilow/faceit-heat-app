@@ -1,0 +1,12 @@
+asgiref==3.8.1
+Django==5.1.7
+gunicorn==23.0.0
+packaging==24.2
+psycopg2-binary==2.9.10
+sqlparse==0.5.3
+requests>=2.25.1
+pandas>=1.2.0
+whitenoise>=6.4.0
+django-prometheus
+djangorestframework
+python-dotenv

@@ -1,0 +1,35 @@
+{% extends 'faceit/base.html' %}
+
+{% block title %}Cache Cleared{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header card-header-faceit">
+                <h2 class="my-2"><i class="fas fa-check-circle"></i> Cache Management</h2>
+            </div>
+            <div class="card-body">
+                {% if success %}
+                <div class="alert alert-success">
+                    <i class="fas fa-check"></i> {{ message }}
+                </div>
+                {% else %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i> {{ message }}
+                </div>
+                {% endif %}
+                
+                <div class="mt-4">
+                    <a href="{% url 'faceit:clear_cache' %}" class="btn btn-secondary me-2">
+                        <i class="fas fa-arrow-left"></i> Back to Cache Management
+                    </a>
+                    <a href="{% url 'faceit:home' %}" class="btn btn-faceit">
+                        <i class="fas fa-home"></i> Return to Home
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

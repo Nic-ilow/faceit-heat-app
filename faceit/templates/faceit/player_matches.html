@@ -1,0 +1,345 @@
+{% extends 'faceit/base.html' %}
+
+{% block title %}{{ player_nickname }}'s Matches - Faceit Analyzer{% endblock %}
+
+{% block extra_css %}
+<style>
+    .loader {
+        display: none;
+        border: 6px solid #f3f3f3;
+        border-top: 6px solid #3b1f5d;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 2s linear infinite;
+        margin: 20px auto;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .loading-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .loading-content {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        width: 80%;
+        max-width: 500px;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header card-header-faceit">
+                <h2 class="my-2"><i class="fas fa-gamepad"></i> {{ player_nickname }}'s Recent Matches</h2>
+            </div>
+            <div class="card-body">
+                <p class="lead">Below are the recent matches for {{ player_nickname }}. Click on a match ID to analyze it or visit the Faceit match page.</p>
+                
+                <div class="d-flex justify-content-end mb-3">
+                    <a href="{% url 'faceit:find_player' %}" class="btn btn-secondary me-2">
+                        <i class="fas fa-search"></i> Find Another Player
+                    </a>
+                    <a href="{% url 'faceit:home' %}" class="btn btn-faceit">
+                        <i class="fas fa-home"></i> Back to Home
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden element to pass debug flag to JavaScript -->
+<div id="debug-data" data-debug="{% if debug %}true{% else %}false{% endif %}" style="display:none;"></div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header card-header-faceit">
+                <h3><i class="fas fa-list"></i> Match List</h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="matches-table">
+                        <thead class="bg-dark text-white">
+                            <tr>
+                                <th>Match ID</th>
+                                <th>Game</th>
+                                <th>Started</th>
+                                <th>Finished</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for match in recent_matches %}
+                            <tr>
+                                <td>
+                                    <a href="{{ match.faceit_url }}" target="_blank" class="text-decoration-none">
+                                        <code>{{ match.match_id }}</code>
+                                        <i class="fas fa-external-link-alt ms-1 small"></i>
+                                    </a>
+                                </td>
+                                <td><span class="badge bg-secondary">{{ match.game_id }}</span></td>
+                                <td>{{ match.started_at }}</td>
+                                <td>{{ match.finished_at }}</td>
+                                <td>
+                                    {% if match.status == 'FINISHED' %}
+                                        <span class="badge bg-success">Finished</span>
+                                    {% elif match.status == 'ONGOING' %}
+                                        <span class="badge bg-warning text-dark">Ongoing</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ match.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <form method="post" action="{% url 'faceit:analyze' %}" class="analyze-form">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="game_id" value="{{ match.match_id }}">
+                                            <button type="submit" class="btn btn-sm btn-faceit me-2 analyze-btn">
+                                                <i class="fas fa-chart-line"></i> Analyze
+                                            </button>
+                                        </form>
+                                        {% if debug %}
+                                        <a href="{% url 'faceit:debug_match' match_id=match.match_id %}" class="btn btn-sm btn-secondary">
+                                            <i class="fas fa-bug"></i> Debug
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div id="loader" class="loader"></div>
+                
+                <div class="text-center mt-4" id="load-more-container">
+                    <button id="load-more-btn" class="btn btn-faceit" data-offset="{{ offset }}" data-player-id="{{ player_id }}">
+                        <i class="fas fa-plus-circle"></i> Load More Matches
+                    </button>
+                </div>
+                
+                <div class="alert alert-warning mt-4">
+                    <i class="fas fa-exclamation-triangle"></i> Note: Selecting "Analyze" will run the heat check analysis for all players in the match.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loading-overlay" class="loading-overlay">
+    <div class="loading-content">
+        <div class="spinner-border text-primary mb-3" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <h4>Analyzing match data...</h4>
+        <div id="loading-text">Gathering player statistics...</div>
+        <p class="text-muted mt-2">This process typically takes about 30 seconds to complete.</p>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const loadMoreBtn = document.getElementById('load-more-btn');
+        const loader = document.getElementById('loader');
+        const matchesTable = document.getElementById('matches-table').querySelector('tbody');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const loadingText = document.getElementById('loading-text');
+        const analyzeForms = document.querySelectorAll('.analyze-form');
+        
+        // Get debug setting from data attribute
+        const debugData = document.getElementById('debug-data');
+        const showDebugButton = debugData.dataset.debug === 'true';
+        
+        // For analyze button loading text
+        let loadingStep = 0;
+        let loadingInterval;
+        
+        const initialMessages = [
+            "Gathering player statistics...",
+            "Analyzing match data...",
+            "Calculating performance metrics...",
+            "Processing heat levels...",
+            "Almost there..."
+        ];
+        
+        const finalMessages = [
+            "Almost there...",
+            "Just one more second...",
+            "Maybe there's a queue or something..."
+        ];
+        
+        function updateLoadingText() {
+            if (loadingStep < initialMessages.length - 1) {
+                // Still in the initial sequence
+                loadingStep++;
+                loadingText.textContent = initialMessages[loadingStep];
+            } else {
+                // Switch to cycling through final messages
+                const currentIndex = (loadingStep - initialMessages.length + 1) % finalMessages.length;
+                loadingText.textContent = finalMessages[currentIndex];
+                loadingStep++;
+            }
+        }
+        
+        // Make sure to clear the interval when leaving the page
+        window.addEventListener('beforeunload', function() {
+            if (loadingInterval) {
+                clearInterval(loadingInterval);
+            }
+        });
+        
+        // Add event listeners to all analyze forms
+        analyzeForms.forEach(form => {
+            form.addEventListener('submit', function() {
+                // Show loading overlay
+                loadingOverlay.style.display = 'flex';
+                
+                // Clear any existing interval
+                if (loadingInterval) {
+                    clearInterval(loadingInterval);
+                }
+                
+                // Reset loading step
+                loadingStep = 0;
+                loadingText.textContent = initialMessages[0];
+                
+                // Start cycling through loading messages every 5 seconds
+                loadingInterval = setInterval(updateLoadingText, 5000);
+                
+                // Allow form submission
+                return true;
+            });
+        });
+        
+        loadMoreBtn.addEventListener('click', function() {
+            const offset = loadMoreBtn.getAttribute('data-offset');
+            const playerId = loadMoreBtn.getAttribute('data-player-id');
+            
+            // Show loader
+            loader.style.display = 'block';
+            loadMoreBtn.disabled = true;
+            
+            // Fetch more matches
+            fetch(`/faceit/load-more-matches/?player_id=${playerId}&offset=${offset}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.matches.length > 0) {
+                        // Append new matches to the table
+                        data.matches.forEach(match => {
+                            let statusBadge = `<span class="badge bg-secondary">${match.status}</span>`;
+                            if (match.status === 'FINISHED') {
+                                statusBadge = '<span class="badge bg-success">Finished</span>';
+                            } else if (match.status === 'ONGOING') {
+                                statusBadge = '<span class="badge bg-warning text-dark">Ongoing</span>';
+                            }
+                            
+                            // Create debug button HTML only if debug is enabled
+                            let debugButtonHtml = '';
+                            if (showDebugButton) {
+                                debugButtonHtml = `
+                                    <a href="/faceit/debug/${match.match_id}/" class="btn btn-sm btn-secondary">
+                                        <i class="fas fa-bug"></i> Debug
+                                    </a>
+                                `;
+                            }
+                            
+                            const newRow = document.createElement('tr');
+                            newRow.innerHTML = `
+                                <td>
+                                    <a href="${match.faceit_url}" target="_blank" class="text-decoration-none">
+                                        <code>${match.match_id}</code>
+                                        <i class="fas fa-external-link-alt ms-1 small"></i>
+                                    </a>
+                                </td>
+                                <td><span class="badge bg-secondary">${match.game_id}</span></td>
+                                <td>${match.started_at}</td>
+                                <td>${match.finished_at}</td>
+                                <td>${statusBadge}</td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <form method="post" action="/faceit/analyze/" class="analyze-form">
+                                            <input type="hidden" name="csrfmiddlewaretoken" value="${document.querySelector('[name=csrfmiddlewaretoken]').value}">
+                                            <input type="hidden" name="game_id" value="${match.match_id}">
+                                            <button type="submit" class="btn btn-sm btn-faceit me-2 analyze-btn">
+                                                <i class="fas fa-chart-line"></i> Analyze
+                                            </button>
+                                        </form>
+                                        ${debugButtonHtml}
+                                    </div>
+                                </td>
+                            `;
+                            matchesTable.appendChild(newRow);
+                            
+                            // Add event listener to the new analyze form
+                            const newAnalyzeForm = newRow.querySelector('.analyze-form');
+                            newAnalyzeForm.addEventListener('submit', function() {
+                                // Show loading overlay
+                                loadingOverlay.style.display = 'flex';
+                                
+                                // Clear any existing interval
+                                if (loadingInterval) {
+                                    clearInterval(loadingInterval);
+                                }
+                                
+                                // Reset loading step
+                                loadingStep = 0;
+                                loadingText.textContent = initialMessages[0];
+                                
+                                // Start cycling through loading messages every 5 seconds
+                                loadingInterval = setInterval(updateLoadingText, 5000);
+                                
+                                // Allow form submission
+                                return true;
+                            });
+                        });
+                        
+                        // Update the load more button with the new offset
+                        if (data.has_more) {
+                            loadMoreBtn.setAttribute('data-offset', data.next_offset);
+                        } else {
+                            // Hide the load more button if no more matches
+                            document.getElementById('load-more-container').style.display = 'none';
+                        }
+                    } else {
+                        // No more matches or error
+                        document.getElementById('load-more-container').style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading more matches:', error);
+                })
+                .finally(() => {
+                    // Hide loader
+                    loader.style.display = 'none';
+                    loadMoreBtn.disabled = false;
+                });
+        });
+    });
+</script>
+{% endblock %}
+
+{% endblock %} 
