@@ -19,6 +19,13 @@ sys.exit(0)
 END
 }
 
+echo "Waiting for PostgreSQL..."
+until postgres_ready; do
+  echo "PostgreSQL unavailable - sleeping"
+  sleep 2
+done
+echo "PostgreSQL is ready!"
+
 ## Apply database migrations
 echo "Applying database migrations..."
 python manage.py migrate

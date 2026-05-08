@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: faceit-heat
+  namespace: faceit
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  tls:
+    - hosts:
+        - heat.nilow.space
+      secretName: faceit-heat-tls
+  rules:
+    - host: heat.nilow.space
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: faceit-heat
+                port:
+                  number: 80

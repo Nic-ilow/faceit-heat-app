@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: faceit-heat
+  namespace: faceit
+  labels:
+    app: faceit-heat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: faceit-heat
+  template:
+    metadata:
+      labels:
+        app: faceit-heat
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: faceit-heat
+          image: ghcr.io/nic-ilow/faceit-heat-app:latest
+          ports:
+            - containerPort: 8001
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8001
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8001
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          env:
+            - name: DJANGO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: faceit-secrets
+                  key: DJANGO_SECRET_KEY
+            - name: FACEIT_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: faceit-secrets
+                  key: FACEIT_API_KEY
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: faceit-secrets
+                  key: DB_PASSWORD
+            - name: DJANGO_DEBUG
+              value: "false"
+            - name: DJANGO_ALLOWED_HOSTS
+              value: "heat.nilow.space"
+            - name: DJANGO_CSRF_TRUSTED_ORIGINS
+              value: "https://heat.nilow.space"
+            - name: DB_HOST
+              value: "faceit-postgres.faceit.svc.cluster.local"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: "faceit_db"
+            - name: DB_USER
+              value: "faceit"

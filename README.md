@@ -1,161 +1,113 @@
-# Faceit Django Webserver
+# Faceit Heat
 
+Django app for FACEIT CS2 stats — fetch player performance data, match history, and generate heat-check insights.
 
-Minimal, production-ready Django app for interacting with the Faceit API, containerized and deployable via Helm.
+Live at [heat.nilow.space](https://heat.nilow.space)
 
-## 🚀 Features
+## Features
 
-- **Faceit API Integration**: Fetch player stats, match data, and generate performance insights.
-- **Dockerized**: Single `Dockerfile` + `entrypoint.sh` for uniform builds.
-- **Kubernetes-Ready**: Helm chart with Secret management and configurable values.
-- **Secure by Design**: Environment-driven secrets, CSRF enabled, HTTPS redirect middleware.
+- Faceit API integration for player stats and match data
+- Performance calculations and session tracking
+- Dockerized with Gunicorn + WhiteNoise
+- Kubernetes-ready with plain manifests, Sealed Secrets, and cert-manager TLS
+- CI/CD via GitHub Actions pushing to GHCR
 
-## 🛠️ Tech Stack
+## Tech Stack
 
-- Python 3.11 • Django 4.x • Gunicorn
-- Docker • Kubernetes • Helm
-- Nginx (reverse proxy)
+- Python 3.12, Django 5.1, Gunicorn
+- Docker, Kubernetes (k3s), Traefik
+- PostgreSQL 15
+- GitHub Actions, GHCR
 
-## ⚡ Quick Start
+## Local Development
 
 ```bash
-# Clone
-git clone git@github.com:nic-ilow/faceit-heat-check.git && cd faceit
+git clone git@github.com:nic-ilow/faceit-heat-app.git && cd faceit-heat-app
 
-# Local development (SQLite)
 cp .env.example .env
 # fill .env with FACEIT_API_KEY & DJANGO_SECRET_KEY
+
 python manage.py migrate
 python manage.py runserver
 ```
 
-In DEBUG mode, the app uses SQLite (`db.sqlite3`). For production, configure a PostgreSQL database via environment variables or Kubernetes secrets.## 📦 Deployment
+In DEBUG mode the app uses SQLite. For production it connects to PostgreSQL via `DB_*` env vars.
 
-Production deployment via Helm chart (in progress). The app expects an external PostgreSQL instance. Configure database connection parameters, FACEIT_API_KEY, and DJANGO_SECRET_KEY through Helm values or environment variables.
+## Deployment
+
+CI/CD automatically builds and pushes the Docker image to GHCR on push to `main`. Kubernetes manifests live in `k8s/`.
+
+### Prerequisites
+
+- k3s cluster with Traefik, cert-manager, and Sealed Secrets controller
+- `kubectl` and `kubeseal` CLI access
+
+### 1. Create namespace and GHCR pull secret
 
 ```bash
-# Build & push image
-docker build -t registry/faceit:latest .
-docker push registry/faceit:latest
+kubectl apply -f k8s/namespace.yaml
+
+kubectl create secret docker-registry ghcr-pull-secret \
+  --namespace faceit \
+  --docker-server=ghcr.io \
+  --docker-username=nic-ilow \
+  --docker-password=<GITHUB_PAT> \
+  --docker-email=<email>
 ```
 
-## Kubernetes Deployment
+### 2. Deploy PostgreSQL
 
-### 1. PostgreSQL Setup
+```bash
+export DB_PASSWORD=$(openssl rand -base64 16)
 
-1. **Create test namespace**  
-   ```bash
-   kubectl create namespace faceit-test
-   ```
+kubectl create secret generic faceit-postgres-secret \
+  --namespace faceit \
+  --from-literal=password="$DB_PASSWORD"
 
-2. **Create a pvc for postgres**
-    ```
-    apiVersion: v1
-    kind: PersistentVolumeClaim
-    metadata:
-      name: faceit-postgres-pvc
-      namespace: faceit-test
-    spec:
-      accessModes:
-        - ReadWriteOnce
-      resources:
-        requests:
-          storage: 10Gi
-    ```
-
-3. **Create your db secret**
-    ```
-    export TEST_DB_PASSWORD=$(openssl rand -base64 16)
-    kubectl create secret generic faceit-postgres-secret \
-      --namespace faceit-test \
-      --from-literal=password="$TEST_DB_PASSWORD"
-    ```
-
-
-4. **Deploy StatefulSet**
-    ```
-    apiVersion: apps/v1
-    kind: StatefulSet
-    metadata:
-      name: faceit-postgres
-      namespace: faceit-test
-    spec:
-      serviceName: faceit-postgres
-      replicas: 1
-      selector:
-        matchLabels:
-          app: faceit-postgres
-      template:
-        metadata:
-          labels:
-            app: faceit-postgres
-        spec:
-          containers:
-          - name: postgres
-            image: postgres:15
-            env:
-            - name: POSTGRES_DB
-              value: faceit_test_db
-            - name: POSTGRES_USER
-              value: faceit
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: faceit-postgres-secret
-                  key: password
-            ports:
-            - containerPort: 5432
-            volumeMounts:
-            - name: data
-              mountPath: /var/lib/postgresql/data
-      volumeClaimTemplates:
-      - metadata:
-          name: data
-        spec:
-          accessModes: [ReadWriteOnce]
-          resources:
-            requests:
-              storage: 10Gi
-    ```
-
-5. **Export Postgres**
-    ```
-    apiVersion: v1
-    kind: Service
-    metadata:
-      name: faceit-postgres
-      namespace: faceit-test
-    spec:
-      ports:
-        - port: 5432
-          targetPort: 5432
-      selector:
-        app: faceit-postgres
-    ```
-
-# Deploy via Helm
-
-```
-helm upgrade --install faceit charts/faceit \
-  --namespace faceit-test \
-  --create-namespace \
-  --set image.repository="your_repo" \
-  --set image.tag="latest" \
-  --set service.port=8001 \
-  --set service.targetPort=8001 \
-  --set faceitApiKey="${FACEIT_API_KEY}" \
-  --set djangoSecretKey="${DJANGO_SECRET_KEY}" \
-  --set database.host="faceit-postgres.faceit-test.svc.cluster.local" \
-  --set database.user="faceit" \
-  --set database.password="${TEST_DB_PASSWORD}" \
-  --set database.name="faceit_test_db"
+kubectl apply -f k8s/postgres/
 ```
 
-## Note
-We can also edit the values.yaml file for some of these things (port/targetPort/repository/tag)
+### 3. Generate Sealed Secret
 
-```## 📄 License
+```bash
+kubectl create secret generic faceit-secrets \
+  --namespace faceit \
+  --from-literal=DJANGO_SECRET_KEY="$(openssl rand -base64 50)" \
+  --from-literal=FACEIT_API_KEY="<your-api-key>" \
+  --from-literal=DB_PASSWORD="$DB_PASSWORD" \
+  --dry-run=client -o yaml | kubeseal --format yaml > k8s/sealed-secret.yaml
+```
+
+Commit the resulting `sealed-secret.yaml`.
+
+### 4. Deploy the app
+
+```bash
+kubectl apply -f k8s/sealed-secret.yaml
+kubectl apply -f k8s/deployment.yaml -f k8s/service.yaml -f k8s/ingress.yaml -f k8s/hpa.yaml
+```
+
+### 5. Post-deploy
+
+- Grant Actions access to the GHCR package in GitHub package settings
+- Verify TLS: `kubectl get certificate -n faceit`
+- Check pods: `kubectl get pods -n faceit`
+
+## Environment Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `DJANGO_SECRET_KEY` | Yes | — | Django secret key |
+| `FACEIT_API_KEY` | Yes | — | FACEIT API key |
+| `DJANGO_DEBUG` | No | `True` | Set `false` in production |
+| `DJANGO_ALLOWED_HOSTS` | No | `*` | Comma-separated hostnames |
+| `DJANGO_CSRF_TRUSTED_ORIGINS` | No | — | Comma-separated origins (e.g. `https://heat.nilow.space`) |
+| `DB_HOST` | No | `postgres-service` | PostgreSQL host |
+| `DB_PORT` | No | `5432` | PostgreSQL port |
+| `DB_NAME` | No | `postgres` | Database name |
+| `DB_USER` | No | `postgres` | Database user |
+| `DB_PASSWORD` | No | — | Database password (triggers PostgreSQL mode when set) |
+
+## License
 
 MIT © Nicholas Ilow
-
-

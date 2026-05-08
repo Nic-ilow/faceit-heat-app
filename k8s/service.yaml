@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: faceit-heat
+  namespace: faceit
+  labels:
+    app: faceit-heat
+spec:
+  selector:
+    app: faceit-heat
+  ports:
+    - port: 80
+      targetPort: 8001
