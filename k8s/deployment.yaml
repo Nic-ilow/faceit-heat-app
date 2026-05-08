@@ -33,12 +33,18 @@ spec:
             httpGet:
               path: /
               port: 8001
+              httpHeaders:
+                - name: Host
+                  value: heat.nilow.space
             initialDelaySeconds: 10
             periodSeconds: 10
           livenessProbe:
             httpGet:
               path: /
               port: 8001
+              httpHeaders:
+                - name: Host
+                  value: heat.nilow.space
             initialDelaySeconds: 15
             periodSeconds: 30
           env:

@@ -62,7 +62,10 @@
                         <div class="card h-100 player-card team-faction1">
                             <div class="card-header bg-light">
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <h4 class="mb-0">{{ player.nickname }}</h4>
+                                    <h4 class="mb-0">
+                                        {{ player.nickname }}
+                                        {% if not player.data_available %}<span class="badge bg-warning text-dark ms-2" style="font-size: 0.5em; vertical-align: middle;"><i class="fas fa-exclamation-triangle"></i> Limited data</span>{% endif %}
+                                    </h4>
                                     {% if player.performance_score > 8.5 %}
                                         <span class="badge bg-danger"><i class="fas fa-fire"></i> ON FIRE</span>
                                     {% elif player.performance_score > 7 %}
@@ -161,7 +164,10 @@
                         <div class="card h-100 player-card team-faction2">
                             <div class="card-header bg-light">
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <h4 class="mb-0">{{ player.nickname }}</h4>
+                                    <h4 class="mb-0">
+                                        {{ player.nickname }}
+                                        {% if not player.data_available %}<span class="badge bg-warning text-dark ms-2" style="font-size: 0.5em; vertical-align: middle;"><i class="fas fa-exclamation-triangle"></i> Limited data</span>{% endif %}
+                                    </h4>
                                     {% if player.performance_score > 8.5 %}
                                         <span class="badge bg-danger"><i class="fas fa-fire"></i> ON FIRE</span>
                                     {% elif player.performance_score > 7 %}

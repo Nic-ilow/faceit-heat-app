@@ -4,7 +4,6 @@ from .forms import GameIDForm
 from .models import FaceitAnalysis
 import requests
 import json
-import numpy as np
 import logging
 from datetime import datetime
 from django.conf import settings
@@ -12,7 +11,6 @@ from django.contrib.auth.decorators import user_passes_test
 from prometheus_client import generate_latest, CollectorRegistry, CONTENT_TYPE_LATEST
 
 from faceit.scripts.Team import team_info
-from faceit.scripts.Lobby import lobby_info
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -70,61 +68,21 @@ def analyze_game(request):
                     logger.info(f"Deleted existing analysis for match ID {match_id} to force reanalysis")
                 
                 try:
-                    # Get match data
-                    from faceit.scripts.headers import headers
-                    
                     logger.info(f"Starting analysis for match ID {match_id}")
-                    
-                    # Get player data for the match
+
                     try:
-                        all_p_ids, all_g_ids, all_nicks, configured_time = lobby_info(match_id)
-                        logger.info(f"Retrieved lobby info: {len(all_nicks)} players")
-                    except Exception as e:
-                        logger.error(f"Error getting lobby info: {str(e)}")
-                        return render(request, 'faceit/error.html', {
-                            'error': f'Error retrieving match lobby information: {str(e)}',
-                            'match_id': match_id
-                        })
-                    
-                    # Get match details
-                    try:
-                        match_details = requests.get(
-                            f'https://open.faceit.com/data/v4/matches/{match_id}',
-                            headers=headers
-                        ).json()
-                        logger.info(f"Retrieved match details")
-                    except Exception as e:
-                        logger.error(f"Error getting match details: {str(e)}")
-                        return render(request, 'faceit/error.html', {
-                            'error': f'Error retrieving match details: {str(e)}',
-                            'match_id': match_id
-                        })
-                    
-                    # Get the performance data for all players
-                    try:
-                        lobby_ses_dat = team_info(match_id)
+                        lobby_ses_dat, all_p_ids, all_nicks, team1_name, team2_name = team_info(match_id)
                         logger.info(f"Retrieved team info with {len(lobby_ses_dat)} entries")
-                        
-                        # Add debug information about the returned data
-                        default_count = 0
-                        for entry in lobby_ses_dat:
-                            if entry[0] == 1.0 and entry[1] == 0.72:
-                                default_count += 1
-                        
-                        if default_count > 0:
-                            logger.warning(f"WARNING: {default_count} out of {len(lobby_ses_dat)} players have default stats")
-                        
                     except Exception as e:
                         logger.error(f"Error getting team info: {str(e)}")
                         return render(request, 'faceit/error.html', {
-                            'error': f'Error analyzing team performance: {str(e)}',
+                            'error': f'Error analyzing match: {str(e)}',
                             'match_id': match_id
                         })
-                    
-                    # Organize player data
+
                     team1_players = []
                     team2_players = []
-                    
+
                     try:
                         for i in range(len(all_nicks)):
                             player_data = {
@@ -135,14 +93,14 @@ def analyze_game(request):
                                 'match_count': int(lobby_ses_dat[i][2]),
                                 'wins_count': int(lobby_ses_dat[i][3]),
                                 'performance_score': float(lobby_ses_dat[i][4]),
+                                'data_available': bool(lobby_ses_dat[i][5]),
                             }
-                            
-                            # Add to appropriate team
+
                             if i < 5:
                                 team1_players.append(player_data)
                             else:
                                 team2_players.append(player_data)
-                                
+
                         logger.info(f"Organized player data: Team 1: {len(team1_players)}, Team 2: {len(team2_players)}")
                     except Exception as e:
                         logger.error(f"Error organizing player data: {str(e)}")
@@ -150,16 +108,15 @@ def analyze_game(request):
                             'error': f'Error processing player data: {str(e)}',
                             'match_id': match_id
                         })
-                    
-                    # Complete match data
+
                     match_data = {
                         'match_id': match_id,
                         'team1': {
-                            'name': match_details['teams']['faction1'].get('name', 'Team 1'),
+                            'name': team1_name,
                             'players': team1_players
                         },
                         'team2': {
-                            'name': match_details['teams']['faction2'].get('name', 'Team 2'),
+                            'name': team2_name,
                             'players': team2_players
                         }
                     }

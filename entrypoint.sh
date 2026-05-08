@@ -26,6 +26,10 @@ until postgres_ready; do
 done
 echo "PostgreSQL is ready!"
 
+## Create cache table
+echo "Creating cache table..."
+python manage.py createcachetable
+
 ## Apply database migrations
 echo "Applying database migrations..."
 python manage.py migrate

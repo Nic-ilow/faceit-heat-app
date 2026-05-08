@@ -65,7 +65,10 @@ class LobbyAnalyzer:
         
         logger.info(f"Extracted {len(all_nicks)} players from match {self.match_id}")
         
-        return all_p_ids, all_g_ids, all_nicks, start_time
+        team1_name = match_data['teams']['faction1'].get('name', 'Team 1')
+        team2_name = match_data['teams']['faction2'].get('name', 'Team 2')
+
+        return all_p_ids, all_g_ids, all_nicks, start_time, team1_name, team2_name
     
     @classmethod
     def get_lobby_info(cls, match_id):
