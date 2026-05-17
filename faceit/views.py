@@ -15,6 +15,10 @@ from faceit.scripts.Team import team_info
 # Set up logging
 logger = logging.getLogger(__name__)
 
+def healthz(request):
+    return HttpResponse("ok")
+
+
 def faceit_home(request):
     form = GameIDForm()
     return render(request, 'faceit/home.html', {

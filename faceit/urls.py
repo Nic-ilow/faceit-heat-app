@@ -12,5 +12,6 @@ urlpatterns = [
     path('find-player/', views.find_player_matches, name='find_player'),
     path('load-more-matches/', views.load_more_matches, name='load_more_matches'),
     path('clear-cache/', views.clear_analysis_cache, name='clear_cache'),
+    path('healthz', views.healthz, name='healthz'),
     re_path(r'^metrics/?$', exports.ExportToDjangoView, name='metrics'),
 ] 
