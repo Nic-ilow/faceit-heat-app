@@ -29,8 +29,12 @@ class LobbyAnalyzer:
         """Extract player information from the match"""
         match_data = self.get_match_data()
         
-        # Get configuration time
-        start_time = match_data['configured_at']
+        # Get configuration time (some matches may not have configured_at)
+        start_time = (
+            match_data.get('configured_at')
+            or match_data.get('started_at')
+            or match_data.get('created_at')
+        )
         
         # Extract Team 1 players
         team_1_nicks = []
