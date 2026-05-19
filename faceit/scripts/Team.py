@@ -24,7 +24,7 @@ class TeamAnalyzer:
 
             results = [None] * len(all_p_ids)
 
-            with ThreadPoolExecutor(max_workers=5) as executor:
+            with ThreadPoolExecutor(max_workers=2) as executor:
                 futures = {}
                 for i, (p_id, nick) in enumerate(zip(all_p_ids, all_nicks)):
                     future = executor.submit(

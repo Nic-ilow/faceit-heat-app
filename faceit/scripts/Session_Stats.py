@@ -13,7 +13,7 @@ def get_session():
     session = requests.Session()
     retry = Retry(
         total=3,
-        backoff_factor=1,
+        backoff_factor=1.5,
         backoff_jitter=0.5,
         status_forcelist=[429, 500, 502, 503, 504],
     )
@@ -28,6 +28,9 @@ class SessionAnalyzer:
     def __init__(self, player_id, nickname, configured_time):
         self.player_id = player_id
         self.nickname = nickname
+        if not configured_time or not isinstance(configured_time, (int, float)):
+            logger.warning(f"Bad configured_time for {nickname}: {configured_time!r}, using current time")
+            configured_time = int(time.time())
         self.configured_time = configured_time
         self.from_time = int(configured_time - (60 * 60 * 24))
         self.to_time = int(configured_time)

@@ -17,7 +17,7 @@ def get_session():
     session = requests.Session()
     retry = Retry(
         total=3,
-        backoff_factor=1,
+        backoff_factor=1.5,
         backoff_jitter=0.5,
         status_forcelist=[429, 500, 502, 503, 504],
     )
@@ -55,7 +55,10 @@ class StatFinder:
             timeout=10
         )
         data = response.json()
-        cache.set(cache_key, data, timeout=None)
+        if 'rounds' in data:
+            cache.set(cache_key, data, timeout=None)
+        else:
+            logger.warning(f"Match stats for {match_id} missing 'rounds', not caching")
         return data
 
     def process_match(self, match_num):

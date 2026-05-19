@@ -1,11 +1,30 @@
 import requests
 import logging
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 from django.core.cache import cache
 from faceit.scripts.headers import headers
 
 logger = logging.getLogger(__name__)
 
 ELO_CACHE_TTL = 3600  # 1 hour
+
+_session = None
+
+def _get_session():
+    global _session
+    if _session is None:
+        _session = requests.Session()
+        retry = Retry(
+            total=3,
+            backoff_factor=1.5,
+            backoff_jitter=0.5,
+            status_forcelist=[429, 500, 502, 503, 504],
+        )
+        adapter = HTTPAdapter(max_retries=retry)
+        _session.mount('http://', adapter)
+        _session.mount('https://', adapter)
+    return _session
 
 
 class EloCalculator:
@@ -31,9 +50,10 @@ class EloCalculator:
             return cached
 
         try:
-            player_details = requests.get(
+            player_details = _get_session().get(
                 f'https://open.faceit.com/data/v4/players/{player_id}',
-                headers=headers
+                headers=headers,
+                timeout=10,
             ).json()
 
             game_key = EloCalculator.find_game_key(player_details)

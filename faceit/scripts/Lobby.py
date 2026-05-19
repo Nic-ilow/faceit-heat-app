@@ -1,24 +1,39 @@
 import requests
 import logging
+import time
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 from faceit.scripts.headers import headers
 
-# Set up logging
 logger = logging.getLogger(__name__)
 
+def _get_session():
+    session = requests.Session()
+    retry = Retry(
+        total=3,
+        backoff_factor=1.5,
+        backoff_jitter=0.5,
+        status_forcelist=[429, 500, 502, 503, 504],
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount('http://', adapter)
+    session.mount('https://', adapter)
+    return session
+
+
 class LobbyAnalyzer:
-    """Class for analyzing match lobbies and extracting player data"""
-    
+
     def __init__(self, match_id):
-        """Initialize with a match ID"""
         self.match_id = match_id
+        self.session = _get_session()
         logger.info(f"LobbyAnalyzer initialized for match {match_id}")
-    
+
     def get_match_data(self):
-        """Get the match data from the Faceit API"""
         try:
-            response = requests.get(
+            response = self.session.get(
                 f'https://open.faceit.com/data/v4/matches/{self.match_id}',
-                headers=headers
+                headers=headers,
+                timeout=15,
             )
             return response.json()
         except Exception as e:
@@ -29,12 +44,12 @@ class LobbyAnalyzer:
         """Extract player information from the match"""
         match_data = self.get_match_data()
         
-        # Get configuration time (some matches may not have configured_at)
         start_time = (
             match_data.get('configured_at')
             or match_data.get('started_at')
-            or match_data.get('created_at')
+            or int(time.time())
         )
+        logger.info(f"Match {self.match_id} start_time={start_time} (configured_at={match_data.get('configured_at')}, started_at={match_data.get('started_at')})")
         
         # Extract Team 1 players
         team_1_nicks = []

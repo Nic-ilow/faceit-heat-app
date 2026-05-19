@@ -125,15 +125,20 @@ def analyze_game(request):
                         }
                     }
                     
-                    # Save analysis to database
-                    try:
-                        analysis = FaceitAnalysis(game_id=match_id)
-                        analysis.set_match_data(match_data)
-                        analysis.save()
-                        logger.info(f"Saved analysis for match ID {match_id}")
-                    except Exception as e:
-                        logger.error(f"Error saving analysis: {str(e)}")
-                        # Continue anyway to show results
+                    # Only cache if at least one player has real data
+                    all_players = team1_players + team2_players
+                    has_any_data = any(p['data_available'] for p in all_players)
+
+                    if has_any_data:
+                        try:
+                            analysis = FaceitAnalysis(game_id=match_id)
+                            analysis.set_match_data(match_data)
+                            analysis.save()
+                            logger.info(f"Saved analysis for match ID {match_id}")
+                        except Exception as e:
+                            logger.error(f"Error saving analysis: {str(e)}")
+                    else:
+                        logger.warning(f"Skipping cache for match {match_id}: no players had data available")
                     
                 except Exception as e:
                     logger.error(f"Unexpected error in analyze_game: {str(e)}")
