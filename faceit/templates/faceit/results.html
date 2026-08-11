@@ -3,28 +3,7 @@
 
 {% block title %}Match Analysis Results{% endblock %}
 
-{% block extra_css %}
-<style>
-    /* Heat level color scale - Updated to match the legend */
-    .heat-level-ice { background-color: #17a2b8 !important; color: white !important; } /* Light blue for better contrast */
-    .heat-level-cold { background-color: #007bff !important; } /* Bootstrap primary */
-    .heat-level-neutral { background-color: #6c757d !important; } /* Bootstrap secondary */
-    .heat-level-warm { background-color: #ffe600 !important; color: #333 !important; } /* Yellowish with dark text */
-    .heat-level-hot { background-color: #ff7f07 !important; color: #212529 !important; } /* Bootstrap warning */
-    .heat-level-fire { background-color: #dc3545 !important; } /* Bootstrap danger */
-    
-    /* For the different heat score ranges - fixed color assignments */
-    .kr-value-low { color: #FF0000; }
-    .kr-value-avg { color: #000000; }
-    .kr-value-good { color: #008800; }
-    .kr-value-great { color: #0000FF; }
-    
-    .kd-value-low { color: #FF0000; }
-    .kd-value-avg { color: #000000; }
-    .kd-value-good { color: #008800; }
-    .kd-value-great { color: #0000FF; }
-</style>
-{% endblock %}
+{# Heat level + stat value colors live in static/css/style.css #}
 
 {% block content %}
 <div class="row mb-4">
@@ -69,15 +48,15 @@
                                     {% if player.performance_score > 8.5 %}
                                         <span class="badge bg-danger"><i class="fas fa-fire"></i> ON FIRE</span>
                                     {% elif player.performance_score > 7 %}
-                                        <span class="badge" style="background-color: #ff7f07; color: #212529;"><i class="fas fa-fire"></i> Hot</span>
+                                        <span class="badge heat-level-hot"><i class="fas fa-fire"></i> Hot</span>
                                     {% elif player.performance_score > 6 %}
-                                        <span class="badge" style="background-color: #ffe600; color: #333;"><i class="fas fa-temperature-half"></i> Warm</span>
+                                        <span class="badge heat-level-warm"><i class="fas fa-temperature-half"></i> Warm</span>
                                     {% elif player.performance_score > 4 %}
                                         <span class="badge bg-secondary"><i class="fas fa-thermometer-half"></i> Neutral</span>
                                     {% elif player.performance_score > 2.5 %}
                                         <span class="badge bg-primary"><i class="fas fa-temperature-low"></i> Cold</span>
                                     {% else %}
-                                        <span class="badge" style="background-color: #17a2b8; color: white;"><i class="fas fa-snowflake"></i> ICE</span>
+                                        <span class="badge heat-level-ice"><i class="fas fa-snowflake"></i> ICE</span>
                                     {% endif %}
                                 </div>
                             </div>
@@ -171,15 +150,15 @@
                                     {% if player.performance_score > 8.5 %}
                                         <span class="badge bg-danger"><i class="fas fa-fire"></i> ON FIRE</span>
                                     {% elif player.performance_score > 7 %}
-                                        <span class="badge" style="background-color: #ff7f07; color: #212529;"><i class="fas fa-fire"></i> Hot</span>
+                                        <span class="badge heat-level-hot"><i class="fas fa-fire"></i> Hot</span>
                                     {% elif player.performance_score > 6 %}
-                                        <span class="badge" style="background-color: #ffe600; color: #333;"><i class="fas fa-temperature-half"></i> Warm</span>
+                                        <span class="badge heat-level-warm"><i class="fas fa-temperature-half"></i> Warm</span>
                                     {% elif player.performance_score > 4 %}
                                         <span class="badge bg-secondary"><i class="fas fa-thermometer-half"></i> Neutral</span>
                                     {% elif player.performance_score > 2.5 %}
                                         <span class="badge bg-primary"><i class="fas fa-temperature-low"></i> Cold</span>
                                     {% else %}
-                                        <span class="badge" style="background-color: #17a2b8; color: white;"><i class="fas fa-snowflake"></i> ICE</span>
+                                        <span class="badge heat-level-ice"><i class="fas fa-snowflake"></i> ICE</span>
                                     {% endif %}
                                 </div>
                             </div>
@@ -318,11 +297,11 @@
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <span>7 - 8.5</span>
-                                <span class="badge" style="background-color: #ff7f07; color: #212529;">Hot</span>
+                                <span class="badge heat-level-hot">Hot</span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <span>6 - 7</span>
-                                <span class="badge" style="background-color: #ffe600; color: #333;">Warm</span>
+                                <span class="badge heat-level-warm">Warm</span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <span>4 - 6</span>
@@ -334,7 +313,7 @@
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <span>1 - 2.5</span>
-                                <span class="badge" style="background-color: #17a2b8; color: white;">ICE ❄️</span>
+                                <span class="badge heat-level-ice">ICE ❄️</span>
                             </li>
                         </ul>
                     </div>

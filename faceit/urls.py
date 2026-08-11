@@ -8,6 +8,7 @@ urlpatterns = [
     path('', views.faceit_home, name='home'),
     path('analyze/', views.analyze_game, name='analyze'),
     path('api/analyze/', views.api_analyze_game, name='api_analyze'),
+    path('api/v2/analyze/', views.api_analyze_v2, name='api_analyze_v2'),
     path('debug/<str:match_id>/', views.debug_match, name='debug_match'),
     path('find-player/', views.find_player_matches, name='find_player'),
     path('load-more-matches/', views.load_more_matches, name='load_more_matches'),

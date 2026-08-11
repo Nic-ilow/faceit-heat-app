@@ -8,6 +8,8 @@ import logging
 from datetime import datetime
 from django.conf import settings
 from django.contrib.auth.decorators import user_passes_test
+from django.core.cache import cache
+from django.views.decorators.csrf import csrf_exempt
 from prometheus_client import generate_latest, CollectorRegistry, CONTENT_TYPE_LATEST
 
 from faceit.scripts.Team import team_info
@@ -80,7 +82,7 @@ def analyze_game(request):
                     except Exception as e:
                         logger.error(f"Error getting team info: {str(e)}")
                         return render(request, 'faceit/error.html', {
-                            'error': f'Error analyzing match: {str(e)}',
+                            'error': 'Could not analyze this match. It may be too old, still ongoing, or Faceit did not return data for it.',
                             'match_id': match_id
                         })
 
@@ -109,7 +111,7 @@ def analyze_game(request):
                     except Exception as e:
                         logger.error(f"Error organizing player data: {str(e)}")
                         return render(request, 'faceit/error.html', {
-                            'error': f'Error processing player data: {str(e)}',
+                            'error': 'Something went wrong while processing player data for this match.',
                             'match_id': match_id
                         })
 
@@ -143,7 +145,7 @@ def analyze_game(request):
                 except Exception as e:
                     logger.error(f"Unexpected error in analyze_game: {str(e)}")
                     return render(request, 'faceit/error.html', {
-                        'error': f'An unexpected error occurred: {str(e)}',
+                        'error': 'An unexpected error occurred while analyzing the match. Please try again.',
                         'match_id': match_id
                     })
             
@@ -190,10 +192,16 @@ def api_analyze_game(request):
                 
         except Exception as e:
             logger.error(f"API error: {str(e)}")
-            return JsonResponse({'error': str(e)}, status=500)
+            return JsonResponse({'error': 'Internal error, please try again later.'}, status=500)
     
     return JsonResponse({'error': 'Only POST method allowed'}, status=405)
 
+def is_dev_user(user):
+    """Check if user is a developer or if we're in debug mode"""
+    return settings.DEBUG or (user.is_authenticated and user.username == 'nick')
+
+
+@user_passes_test(is_dev_user)
 def debug_match(request, match_id):
     """View for debugging match data"""
     try:
@@ -297,7 +305,7 @@ def find_player_matches(request):
             except Exception as e:
                 logger.error(f"Error getting match history: {str(e)}")
                 return render(request, 'faceit/error.html', {
-                    'error': f'Error getting match history: {str(e)}'
+                    'error': 'Could not fetch match history from Faceit. Please try again.'
                 })
             
             if not recent_matches:
@@ -315,7 +323,7 @@ def find_player_matches(request):
         except Exception as e:
             logger.error(f"Error finding player matches: {str(e)}")
             return render(request, 'faceit/error.html', {
-                'error': f'Error finding player matches: {str(e)}'
+                'error': 'Could not look up that player right now. Please try again.'
             })
     
     # GET request - show form
@@ -387,13 +395,9 @@ def load_more_matches(request):
             
         except Exception as e:
             logger.error(f"Error loading more matches: {str(e)}")
-            return JsonResponse({'error': str(e)}, status=500)
+            return JsonResponse({'error': 'Internal error, please try again later.'}, status=500)
     
     return JsonResponse({'error': 'Only GET method allowed'}, status=405)
-
-def is_dev_user(user):
-    """Check if user is a developer or if we're in debug mode"""
-    return settings.DEBUG or (user.is_authenticated and user.username == 'nick')
 
 @user_passes_test(is_dev_user)
 def clear_analysis_cache(request):
@@ -456,3 +460,98 @@ def metrics(request):
     output = generate_latest(registry)
     return HttpResponse(output, content_type=CONTENT_TYPE_LATEST)
 
+
+
+def _extract_match_id(match_input):
+    """Pull the match UUID out of a full Faceit room URL, or return input as-is."""
+    match_input = (match_input or '').strip()
+    if '/' in match_input and ('faceit.com' in match_input or 'room' in match_input):
+        parts = match_input.strip('/').split('/')
+        match_id = parts[-1]
+        if match_id == 'scoreboard' and len(parts) >= 2:
+            match_id = parts[-2]
+        return match_id
+    return match_input
+
+
+def _run_or_get_analysis(match_id):
+    """Return cached match_data for a match, running the analysis if needed."""
+    existing = FaceitAnalysis.objects.filter(game_id=match_id).first()
+    if existing:
+        match_data = existing.get_match_data()
+        if match_data:
+            return match_data
+
+    lobby_ses_dat, all_p_ids, all_nicks, team1_name, team2_name = team_info(match_id)
+
+    team1_players = []
+    team2_players = []
+    for i in range(len(all_nicks)):
+        player_data = {
+            'nickname': all_nicks[i],
+            'player_id': all_p_ids[i],
+            'kd_ratio': float(lobby_ses_dat[i][0]),
+            'kr_ratio': float(lobby_ses_dat[i][1]),
+            'match_count': int(lobby_ses_dat[i][2]),
+            'wins_count': int(lobby_ses_dat[i][3]),
+            'performance_score': float(lobby_ses_dat[i][4]),
+            'data_available': bool(lobby_ses_dat[i][5]),
+        }
+        (team1_players if i < 5 else team2_players).append(player_data)
+
+    match_data = {
+        'match_id': match_id,
+        'team1': {'name': team1_name, 'players': team1_players},
+        'team2': {'name': team2_name, 'players': team2_players},
+    }
+
+    if any(p['data_available'] for p in team1_players + team2_players):
+        analysis, _ = FaceitAnalysis.objects.get_or_create(game_id=match_id)
+        analysis.set_match_data(match_data)
+        analysis.save()
+
+    return match_data
+
+
+def _throttled(request, limit=10, window=60):
+    """Simple per-IP rate limit backed by the Django cache."""
+    ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() \
+        or request.META.get('REMOTE_ADDR', 'unknown')
+    key = f'apiv2-throttle:{ip}'
+    count = cache.get(key, 0)
+    if count >= limit:
+        return True
+    cache.set(key, count + 1, timeout=window)
+    return False
+
+
+@csrf_exempt
+def api_analyze_v2(request):
+    """JSON API used by the browser extension: analyze (or fetch cached) match."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Only POST method allowed'}, status=405)
+
+    if _throttled(request):
+        return JsonResponse(
+            {'error': 'Rate limit exceeded, try again in a minute.'}, status=429
+        )
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({'error': 'Invalid JSON body'}, status=400)
+
+    match_id = _extract_match_id(data.get('match_id', ''))
+    if not match_id:
+        return JsonResponse({'error': 'Missing match_id'}, status=400)
+
+    try:
+        match_data = _run_or_get_analysis(match_id)
+    except Exception as e:
+        logger.error(f"api_analyze_v2 failed for {match_id}: {str(e)}")
+        return JsonResponse(
+            {'error': 'Could not analyze this match. It may be too old, still ongoing, or invalid.'},
+            status=502,
+        )
+
+    return JsonResponse({'success': True, 'match_data': match_data})

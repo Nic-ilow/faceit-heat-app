@@ -1,144 +1,250 @@
-/* Global styles */
+/* Faceit Heat theme — dark base shared with the other nilow.space apps,
+   heat gradient (orange → pink-red) as the app's own identity. */
+
+:root {
+  --heat-orange: #ff5500;
+  --heat-orange-soft: #ff6b35;
+  --heat-pink: #ff2e63;
+  --heat-gold: #ffd166;
+  --ink: #eef0f4;
+  --muted-ink: #a9adbb;
+  --paper: #14101c;
+  --panel: rgba(24, 19, 32, 0.92);
+  --panel-border: rgba(255, 107, 53, 0.18);
+  --radius: 14px;
+  --shadow-soft: 0 14px 38px rgba(6, 4, 10, 0.5);
+}
+
 body {
-    font-family: 'Poppins', sans-serif;
-    color: #f8f9fa;
-    overflow-x: hidden;
-    background: linear-gradient(to bottom right, rgb(101, 34, 117), rgb(61, 59, 167));
-    background-repeat: no-repeat;
-    background-size: cover;
-    min-height: 100vh;
-    margin: 0;
-    padding-top: 76px;
-    background-attachment: fixed;
-    position: relative;
+  min-height: 100vh;
+  color: var(--ink);
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(255, 85, 0, 0.16), transparent 45%),
+    radial-gradient(circle at 88% 12%, rgba(255, 46, 99, 0.14), transparent 42%),
+    linear-gradient(135deg, #14101c 0%, #1b1220 45%, #221219 100%);
+  background-attachment: fixed;
 }
 
-body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-    height: 100%;
-    background-image:
-        radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 40px),
-        radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 30px),
-        radial-gradient(white, rgba(255,255,255,.1) 2px, transparent 40px);
-    background-size: 550px 550px, 350px 350px, 250px 250px;
-    background-position: 0 0, 40px 60px, 130px 270px;
-    z-index: -1;
+/* ---------- Navbar / footer ---------- */
+
+.navbar {
+  background: rgba(16, 12, 22, 0.88) !important;
+  backdrop-filter: blur(10px);
+  border-bottom: 2px solid var(--heat-orange);
 }
 
-/* Navigation */
-.navbar-dark {
-    background-color: rgba(15, 12, 41, 0.85) !important;
-    border-bottom: 1px solid rgba(138, 43, 226, 0.3);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+.navbar-brand {
+  color: var(--heat-orange-soft) !important;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
-.navbar-dark .navbar-nav .nav-link {
-    color: rgba(255, 255, 255, 0.85);
-    padding: 0.5rem 1rem;
-    margin: 0 0.2rem;
-    transition: all 0.3s ease;
-    border-radius: 4px;
+.nav-link {
+  color: rgba(255, 255, 255, 0.85) !important;
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem !important;
+  transition: background 0.25s ease, color 0.25s ease;
 }
 
-.navbar-dark .navbar-nav .nav-link:hover {
-    color: #fff;
-    background-color: rgba(167, 66, 245, 0.2);
-    transform: translateY(-2px);
+.nav-link:hover,
+.nav-link:focus-visible {
+  color: #fff !important;
+  background: rgba(255, 107, 53, 0.16);
 }
 
-.navbar-dark .navbar-nav .nav-link.active {
-    color: #fff;
-    background-color: rgba(167, 66, 245, 0.3);
+footer {
+  background: rgba(16, 12, 22, 0.88);
+  border-top: 2px solid var(--heat-orange);
 }
 
-/* Cards */
+/* ---------- Cards ---------- */
+
 .card {
-    background-color: rgba(30, 25, 75, 0.75);
-    border: 1px solid rgba(167, 66, 245, 0.2);
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-    transition: transform 0.4s ease-out, box-shadow 0.4s ease-out, background 0.5s ease;
+  background-color: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-soft);
 }
 
-.card .card-title {
-    color: #ffffff;
-    font-weight: 600;
+.card-header-faceit {
+  background: linear-gradient(135deg, rgba(255, 85, 0, 0.22), rgba(255, 46, 99, 0.18));
+  color: #fff;
+  border-bottom: 2px solid var(--heat-orange);
 }
 
-.card .card-text,
-.card p {
-    color: rgba(255, 255, 255, 0.9);
-}
-
-.card-body {
-    color: rgba(255, 255, 255, 0.9);
-}
-
-.card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 15px 30px rgba(167, 66, 245, 0.2);
-    background: rgba(35, 30, 80, 0.9);
-}
-
-/* Progress bars */
-.progress {
-    background-color: rgba(255, 255, 255, 0.2);
-    height: 8px;
-    margin-top: 5px;
-}
-
-/* Table text */
-table {
-    color: rgba(255, 255, 255, 0.9);
-}
-
-/* Background overrides */
+/* Bootstrap .bg-light headers inside cards should stay dark here. */
 .bg-light {
-    background-color: rgba(40, 35, 100, 0.6) !important;
-    color: #fff;
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  color: var(--ink);
 }
 
-/* Text readability */
-p, .lead, li, .card small {
-    color: rgba(255, 255, 255, 0.9);
+.player-card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
 }
 
-/* Custom buttons */
-.btn-primary {
-    background: linear-gradient(135deg, #a742f5, #5c44f2) !important;
-    border: none;
+.player-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 107, 53, 0.45);
+  box-shadow: 0 18px 44px rgba(6, 4, 10, 0.6);
 }
 
-.btn-primary:hover {
-    background: linear-gradient(135deg, #8a32d8, #4c38ce) !important;
+/* ---------- Buttons ---------- */
+
+.btn-faceit {
+  background: linear-gradient(135deg, var(--heat-orange-soft), var(--heat-pink));
+  border: none;
+  color: #fff;
+  font-weight: 600;
+  transition: filter 0.2s ease, transform 0.2s ease;
 }
 
-/* Animations */
+.btn-faceit:hover,
+.btn-faceit:focus-visible {
+  background: linear-gradient(135deg, var(--heat-orange-soft), var(--heat-pink));
+  filter: brightness(1.12);
+  transform: translateY(-1px);
+  color: #fff;
+}
+
+/* ---------- Stats & heat scale ---------- */
+
+.stats-value {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+/* Stat value colors tuned for dark background */
+.kd-value-low,
+.kr-value-low {
+  color: #ff6b6b;
+}
+
+.kd-value-avg,
+.kr-value-avg {
+  color: var(--ink);
+}
+
+.kd-value-good,
+.kr-value-good {
+  color: #51cf66;
+}
+
+.kd-value-great,
+.kr-value-great {
+  color: #6bb8ff;
+}
+
+.heat-meter {
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(to right, #6bb8ff, var(--heat-gold), var(--heat-pink));
+}
+
+.team-faction1 {
+  border-left: 4px solid #6bb8ff;
+}
+
+.team-faction2 {
+  border-left: 4px solid var(--heat-pink);
+}
+
+/* Heat level scale (progress bars + legend) */
+.heat-level-ice {
+  background-color: #4cc3dd !important;
+  color: #0d1117 !important;
+}
+
+.heat-level-cold {
+  background-color: #5a8fd6 !important;
+}
+
+.heat-level-neutral {
+  background-color: #6c757d !important;
+}
+
+.heat-level-warm {
+  background-color: var(--heat-gold) !important;
+  color: #2a2113 !important;
+}
+
+.heat-level-hot {
+  background-color: var(--heat-orange-soft) !important;
+  color: #241005 !important;
+}
+
+.heat-level-fire {
+  background-color: var(--heat-pink) !important;
+}
+
+.progress {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ---------- Misc dark-mode polish ---------- */
+
+.form-control,
+.form-control:focus {
+  background-color: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: var(--ink);
+}
+
+.form-control:focus {
+  border-color: var(--heat-orange-soft);
+  box-shadow: 0 0 0 0.25rem rgba(255, 107, 53, 0.2);
+}
+
+.form-control::placeholder {
+  color: var(--muted-ink);
+}
+
+.input-group-text {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.list-group-item {
+  background-color: transparent;
+  color: var(--ink);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.text-muted,
+.form-text {
+  color: var(--muted-ink) !important;
+}
+
+a {
+  color: var(--heat-orange-soft);
+}
+
+a:hover {
+  color: var(--heat-pink);
+}
+
 .fade-in {
-    animation: fadeIn 0.8s ease-in-out;
+  animation: fadeIn 0.6s ease-in-out;
 }
 
 @keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-/* Responsive adjustments */
-@media (max-width: 991.98px) {
-    .section-header {
-        margin-top: 2rem;
-    }
+@media (prefers-reduced-motion: reduce) {
+  .fade-in,
+  .player-card,
+  .btn-faceit,
+  .nav-link {
+    animation: none;
+    transition: none;
+  }
 }

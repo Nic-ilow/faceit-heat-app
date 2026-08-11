@@ -8,6 +8,8 @@ Live at [heat.nilow.space](https://heat.nilow.space)
 
 - Faceit API integration for player stats and match data
 - Performance calculations and session tracking
+- JSON API for programmatic analysis: `POST /api/v2/analyze/` with `{"match_id": "<id or room URL>"}` (rate-limited per IP)
+- Browser extension (Chrome/Brave, Manifest V3) that adds a Heat check button to Faceit match rooms — see [`extension/`](extension/README.md)
 - Dockerized with Gunicorn + WhiteNoise
 - Kubernetes-ready with plain manifests, Sealed Secrets, and cert-manager TLS
 - CI/CD via GitHub Actions pushing to GHCR
