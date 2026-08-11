@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Faceit Heat",
+  "version": "0.1.0",
+  "description": "See how hot each player in your Faceit CS2 lobby is running — session K/D, K/R, and performance score, right on the match room page.",
+  "permissions": ["storage"],
+  "host_permissions": ["https://heat.nilow.space/*", "http://localhost:8001/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.faceit.com/*"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Faceit Heat"
+  }
+}

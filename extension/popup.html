@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <h1>🔥 Faceit Heat</h1>
+    <p class="hint">
+      Open a Faceit match room and hit the floating <strong>Heat check</strong> button,
+      or paste a match URL / ID below.
+    </p>
+
+    <form id="analyze-form">
+      <input
+        id="match-input"
+        type="text"
+        placeholder="Match URL or ID"
+        autocomplete="off"
+      />
+      <button type="submit">Analyze on heat.nilow.space</button>
+    </form>
+
+    <details>
+      <summary>Settings</summary>
+      <label for="base-url">API base URL</label>
+      <input id="base-url" type="text" placeholder="https://heat.nilow.space" />
+      <button id="save-settings" type="button">Save</button>
+      <p class="hint">Point at http://localhost:8001 when developing locally.</p>
+    </details>
+
+    <p id="status" class="status"></p>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
